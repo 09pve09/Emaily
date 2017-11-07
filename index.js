@@ -1,37 +1,31 @@
 const express = require('express');
+const mongoose = require('mongoose');
+const cookieSession = require('cookie-session');
 const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const app = express();
 const keys = require('./config/keys');
+require('./models/User');
+require('./services/passport');
 
-passport.use(
-  new GoogleStrategy({
-    clientID: keys.googleClientID,
-    clientSecret: keys.googleClientSecret,
-    callbackURL: '/auth/google/callback'
-  },
-  (accessToken, refreshToken, profile, done) => {
-    console.log('access Token:', accessToken);
-    console.log('refresh Token:', refreshToken);
-    console.log('profile:', profile);
+
+mongoose.connect(keys.mongoURI);
+
+const app = express();
+
+app.use(
+  cookieSession({
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+    keys: [keys.cookieKey]
   })
 );
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 // app.get('/',(req, res) => {
 //   res.send({'message': 'This project is still on-going >_<'});
 // });
 
-app.get(
-  '/auth/google',
-  passport.authenticate('google', {
-    scope: ['profile', 'email']
-  })
-);
-app.get(
-  '/auth/google/callback',
-  passport.authenticate('google')
-);
-
+require('./routes/authRoutes')(app);
 const PORT = process.env.PORT || 5000; //using heroku or localhost
 app.listen(PORT);
 
